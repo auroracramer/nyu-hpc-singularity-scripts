@@ -9,4 +9,4 @@
 # Import common stuff
 source /scratch/$USER/overlay/scripts/common/common.sh
 
-bash $jupyter_dir/launchnb.sh $launch_dir/sssle-10GB-400K.sh
+bash $jupyter_dir/launchnb.sh $launch_dir/sssle-10GB-400K.sh /ext3/code

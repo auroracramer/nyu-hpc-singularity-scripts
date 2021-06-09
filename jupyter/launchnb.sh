@@ -9,6 +9,10 @@
 # NOTE: if calling this script in another sbatch script, the above SBATCH
 # configuration will be ignored
 
+# ARG 1: launch_path
+# ARG 2: notebook_dir
+
+
 port=$(shuf -i 10000-65500 -n 1)
 
 /usr/bin/ssh -N -f -R $port:localhost:$port log-1
@@ -55,13 +59,22 @@ fi
 # Import common stuff
 source /scratch/$USER/overlay/scripts/common/common.sh
 
-# Change to dev dir
-cd /home/jtc440/dev
 
 # Launch jupyter notebook using the image launch script
 launch_path="$1"
+if [[ -z "$2" ]]
+then
+    # If not provided, notebook dir is $HOME
+    notebook_dir="/home/$USER"
+else
+    notebook_dir="$2"
+fi
+
+# Change to dev dir
+cd $notebook_dir
+
 echo "Launching Jupyter notebook with launch script: $launch_path"
-source $launch_path jupyter notebook --no-browser --port $port --notebook-dir=$(pwd)
+source $launch_path jupyter notebook --no-browser --port $port --notebook-dir=$notebook_dir
 
 
 
