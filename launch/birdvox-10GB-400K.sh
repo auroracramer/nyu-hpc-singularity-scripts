@@ -13,9 +13,4 @@ singularity exec $nv \
             --overlay $overlays \
             --overlay $pyenvs_dir/birdvox-10GB-400K.ext3 \
             $data_overlay_opts \
-            $sif bash -c "$prince_setup_cmds
-if test -f "/ext3/env.sh"; then
-    source /ext3/env.sh # Load environment if it exists
-fi
-$args
-"
+            $sif bash -c "$prince_setup_cmds; $env_load_cmds; $args"
