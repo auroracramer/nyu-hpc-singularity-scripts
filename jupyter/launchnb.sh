@@ -70,11 +70,6 @@ else
     notebook_dir="$2"
 fi
 
-# Change to dev dir
-cd $notebook_dir
-
 echo "Launching Jupyter notebook with launch script: $launch_path"
 source $launch_path jupyter notebook --no-browser --port $port --notebook-dir=$notebook_dir
-
-
 
