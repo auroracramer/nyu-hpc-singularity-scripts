@@ -13,4 +13,4 @@ singularity exec $nv \
             --overlay $overlays \
             --overlay $pyenvs_dir/birdvox-10GB-400K.ext3:ro \
             $data_overlay_opts \
-            $sif bash -c "$prince_setup_cmds; $args"
+            $sif bash -c "$prince_setup_cmds; $(get_launch_init_cmds); $args"

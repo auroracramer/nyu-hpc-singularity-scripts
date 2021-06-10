@@ -70,6 +70,7 @@ else
     notebook_dir="$2"
 fi
 
+export LAUNCH_SOURCE_ENV=true
 echo "Launching Jupyter notebook with launch script: $launch_path"
 source $launch_path jupyter notebook --no-browser --port $port --notebook-dir=$notebook_dir
 
