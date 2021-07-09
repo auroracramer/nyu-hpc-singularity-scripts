@@ -5,7 +5,7 @@ source /scratch/$USER/overlay/scripts/common/common.sh
 
 # Initialize prince configuration
 source $common_dir/prince_init.sh
-data_overlay_opts="$(find $sqf_dir -type f -name "cdsd-*" | while read line; do echo "--overlay $line:ro"; done)"
+data_overlay_opts="$(find $sqf_dir -type f -name "sssle-*" | while read line; do echo "--overlay $line:ro"; done)"
 
 singularity exec $nv \
             --bind $binds \
