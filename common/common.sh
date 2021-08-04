@@ -19,3 +19,15 @@ get_launch_init_cmds () {
     fi
     echo "$env_load_cmds"
 }
+
+
+get_sanitized_passthru_args () {
+    args=''
+    for i in "$@"; do
+        i="${i//\\/\\\\}"
+        args="$args \"${i//\"/\\\"}\""
+    done
+
+    if [ "$args" == "" ]; then args="/bin/bash"; fi
+    echo $args
+}

@@ -9,14 +9,6 @@ function cleanup_tmp()
 
 trap cleanup_tmp SIGKILL EXIT
 
-args=''
-for i in "$@"; do
-    i="${i//\\/\\\\}"
-    args="$args \"${i//\"/\\\"}\""
-done
-
-if [ "$args" == "" ]; then args="/bin/bash"; fi
-
 module purge
 
 export SINGULARITY_BINDPATH=/mnt,/scratch

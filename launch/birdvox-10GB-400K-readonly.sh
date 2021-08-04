@@ -3,6 +3,9 @@
 # Import common stuff
 source /scratch/$USER/overlay/scripts/common/common.sh
 
+# Sanitize pass-thru arguments
+args=$(get_sanitized_passthru_args)
+
 # Initialize prince configuration
 source $common_dir/prince_init.sh
 data_overlay_opts="$(find $sqf_dir/birdvox -type f -name "birdvox-*" | while read line; do echo "--overlay $line:ro"; done)"
