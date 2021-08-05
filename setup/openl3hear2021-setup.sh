@@ -38,6 +38,8 @@ cd $CODEDIR
 
 # Manually install certain packages
 if [[ ! -f "$BINDIR/ffmpeg" ]]; then
+    # install yasm
+    conda install -y -c conda-forge yasm
     # Install libsoxr
     if [[ ! -d "$CODEDIR/soxr" ]]; then
         git clone https://github.com/chirlu/soxr.git
