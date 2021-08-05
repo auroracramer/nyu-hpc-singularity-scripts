@@ -86,6 +86,14 @@ if [[ ! -d "$CODEDIR/openl3-hear" ]]; then
     git clone https://github.com/marl/openl3-hear.git
 fi
 
+# Make sure we get the correct hear-eval-kit version
+cd $CODEDIR/hear-eval-kit
+git fetch
+git checkout updated-install2
+
+# In place bug-fix prior to patch
+sed -i -e 's|\[\["relpath", "slug", "subsample_key", "split", "label"\]\]||g' $CODEDIR/hear-eval-kit/heareval/tasks/nsynth_pitch.py
+
 # Replace default directories in eval kit with cluster-friendly ones
 for f in $(grep -Rl '"_workdir"' $CODEDIR/hear-eval-kit/*); do
     sed -i -e "s|\"_workdir\"|\"$WORKDIR\"|g" $f;
