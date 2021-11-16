@@ -4,7 +4,7 @@
 source /scratch/$USER/overlay/scripts/common/common.sh
 
 # Sanitize pass-thru arguments
-args=$(get_sanitized_passthru_args)
+args=$(get_sanitized_passthru_args $@)
 
 # Initialize prince configuration
 source $common_dir/prince_init.sh

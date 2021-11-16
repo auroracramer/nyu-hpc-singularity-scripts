@@ -22,6 +22,7 @@ get_launch_init_cmds () {
 
 
 get_sanitized_passthru_args () {
+    # MUST PASS IN $@ as argument
     args=''
     for i in "$@"; do
         i="${i//\\/\\\\}"
