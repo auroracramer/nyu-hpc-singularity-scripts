@@ -1,0 +1,48 @@
+
+Bootstrap: docker
+From: nvidia/cudagl:10.1-devel-ubuntu16.04
+
+
+%labels
+     ABOUTME Ubuntu-16.04, CUDA 10.1, OpenGL (glvnd 1.2)
+
+
+%environment
+    DEBIAN_FRONTEND=noninteractive
+
+
+%runscript
+    exec /bin/bash "$@"	
+
+%post
+
+    # Setup basic packages
+    apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        git \
+        curl \
+        vim \
+        ssh-client \
+        ca-certificates \
+        libjpeg-dev \
+        libpng-dev \
+        libglfw3-dev \
+        libglm-dev \
+        libx11-dev \
+        libomp-dev \
+        libegl1-mesa-dev \
+        libsndfile1 \
+        pkg-config \
+        wget \
+        zip \
+        net-tools \
+        unzip &&\
+        rm -rf /var/lib/apt/lists/*
+    apt-get clean
+
+	# Install cmake
+	wget https://github.com/Kitware/CMake/releases/download/v3.14.0/cmake-3.14.0-Linux-x86_64.sh
+	mkdir -p /opt/cmake
+	sh /cmake-3.14.0-Linux-x86_64.sh --prefix=/opt/cmake --skip-license
+	ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
+	cmake --version

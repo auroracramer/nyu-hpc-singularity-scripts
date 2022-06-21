@@ -1,0 +1,60 @@
+
+Bootstrap: docker
+Registry: localhost:5000
+From: mit-tdw:latest
+
+%labels
+     ABOUTME threedworld-mit/tdw:latest
+
+%environment
+    export LC_ALL=C
+    export LANG=C.UTF-8
+    export DISPLAY=:0
+
+%runscript
+    startx
+    if [[ "$?" -ne 0 ]]; then
+        XAUTHORITY=${XAUTHORITY}-n startx
+    fi
+    exec /bin/bash "$@"
+
+%post
+    apt-get -y update
+    #apt-get -y upgrade
+
+    export DEBIAN_FRONTEND=noninteractive
+
+    # to change time zone to EST
+    export TZ="America/New_York"
+    apt-get install tzdata
+    rm -rf /etc/localtime
+    cp -rp /usr/share/zoneinfo/EST /etc/localtime
+
+    apt-get -y install git curl wget gcc make build-essential cmake linux-generic
+    apt-get -y install perl sqlite3 libswiss-perl libxml-parser-perl
+    apt-get -y install libxml2 libxml2-dev
+    apt-get -y install xvfb xauth
+    echo "allowed_users = anybody" > /etc/X11/Xwrapper.config
+
+    echo 'blacklist nouveau'  | sudo tee -a /etc/modprobe.d/blacklist.conf
+    echo 'options nouveau modeset=0'  | sudo tee -a /etc/modprobe.d/blacklist.conf
+    echo options nouveau modeset=0 | sudo tee -a /etc/modprobe.d/nouveau-kms.conf
+    update-initramfs -u
+    reboot now
+
+    apt-get -y install build-essential git emacs wget curl libjpeg62 vim
+    apt-get -y install gfortran flex bison
+    apt-get -y install autoconf automake
+
+    apt-get -y install lsb-core
+    apt-get -y install libexpat1-dev
+    apt-get -y install tcsh zsh
+    apt install -y libnss3
+
+    apt-get -y install iproute2 strace uuid-runtime
+    apt install -y ffmpeg xvfb swig python-opengl
+    # apt-get -y install libnccl2=2.2.13-1+cuda8.0 libnccl-dev=2.2.13-1+cuda8.0
+    apt install -y fuse
+
+    apt-get clean
+

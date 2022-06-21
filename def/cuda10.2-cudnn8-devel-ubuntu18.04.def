@@ -1,0 +1,43 @@
+
+Bootstrap: docker
+From: nvidia/cuda:10.2-cudnn8-devel-ubuntu18.04
+
+%labels
+     ABOUTME Ubuntu-18.04, CUDA 10.2, NCCL 2.7.8
+
+%environment
+    export LC_ALL=C
+    export LANG=C.UTF-8
+
+%runscript
+    exec /bin/bash "$@"	
+
+%post
+    apt-get -y update
+    apt-get -y upgrade
+
+    export DEBIAN_FRONTEND=noninteractive
+    
+    # to change time zone to EST
+    export TZ="America/New_York"
+    apt-get install tzdata
+    rm -rf /etc/localtime
+    cp -rp /usr/share/zoneinfo/EST /etc/localtime
+
+    apt-get -y install git curl wget make build-essential cmake
+    apt-get -y install perl sqlite3 libswiss-perl libxml-parser-perl
+    apt-get -y install libxml2 libxml2-dev
+
+    apt-get -y install build-essential git emacs wget curl libjpeg62 vim
+    apt-get -y install gfortran flex bison
+    apt-get -y install autoconf automake
+
+    apt-get -y install lsb-core
+    apt-get -y install libexpat1-dev
+    apt-get -y install tcsh zsh
+
+    apt-get -y install libnccl2=2.7.8-1+cuda10.2 libnccl-dev=2.7.8-1+cuda10.2
+
+    apt-get clean
+    
+    exit
