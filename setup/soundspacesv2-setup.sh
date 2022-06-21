@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Author : Aurora Cramer
-# Date   : Mar 2022
+# Date   : Jun 2022
 # NetID  : jtc440
 
 set -e
