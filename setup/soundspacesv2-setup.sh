@@ -6,7 +6,7 @@
 
 set -e
 
-ENV_OVERLAY="/scratch/$USER/overlay/pyenvs/soundspacesv2-10GB-400K.ext3"
+ENV_OVERLAY="/scratch/$USER/overlay/pyenvs/soundspacesv2-32GB-400K.ext3"
 SIF_PATH="/scratch/$USER/overlay/sif/cuda10.1-opengl-devel-ubuntu16.04.sif"
 
 CONDADIR="/ext3/miniconda3"
@@ -26,6 +26,9 @@ REPLICA_DIR="$CODEDIR/Replica-Dataset"
 if [[ ! -f "$ENV_OVERLAY" ]]; then
     cp /scratch/work/public/overlay-fs-ext3/overlay-10GB-400K.ext3.gz $ENV_OVERLAY.gz
     gunzip $ENV_OVERLAY.gz
+    # Extend overlay to 32GB
+    e2fsck -f $ENV_OVERLAY
+    resize2fs $ENV_OVERLAY 32G
 fi
 
 singularity exec --overlay $ENV_OVERLAY $SIF_PATH /bin/bash << EOF
