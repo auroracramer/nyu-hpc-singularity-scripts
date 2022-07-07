@@ -7,34 +7,38 @@
 set -e
 
 ENV_OVERLAY="/scratch/$USER/overlay/pyenvs/soundspacesv2-32GB-400K.ext3"
-SIF_PATH="/scratch/$USER/overlay/sif/cuda10.1-opengl-devel-ubuntu16.04.sif"
+SIF_PATH="/scratch/$USER/overlay/sif/cuda10.2-opengl-devel-ubuntu18.04.sif"
 
 CONDADIR="/ext3/miniconda3"
 CODEDIR="/ext3/code"
+LIBDIR="/ext3/lib"
 TMPDIR="/state/partition1/$SLURM_JOB_ID-tmp"
 BINDIR="/ext3/bin"
 SQFDIR="/scratch/$USER/sqfdata/soundspaces"
+
+#SOUNDSPACES_SQF_DIR="/scratch/work/marl/datasets/soundspaces/sqf"
+SOUNDSPACES_SQF_DIR="/scratch/work/marl/datasets/soundspaces/sqf-20220623"
 DATADIR="$TMPDIR/soundspaces-workdir"
+NUM_CORES=$SLURM_CPUS_PER_TASK
 
 # Set up repo dirs
 HABITAT_LAB_DIR="$CODEDIR/habitat-lab"
 HABITAT_SIM_DIR="$CODEDIR/habitat-sim"
 SOUNDSPACES_DIR="$CODEDIR/sound-spaces"
 REPLICA_DIR="$CODEDIR/Replica-Dataset"
+GLIBC_DIR="$CODEDIR/glibc-2.29"
 
 # Create new overlay for code
 if [[ ! -f "$ENV_OVERLAY" ]]; then
     cp /scratch/work/public/overlay-fs-ext3/overlay-10GB-400K.ext3.gz $ENV_OVERLAY.gz
     gunzip $ENV_OVERLAY.gz
     # Extend overlay to 32GB
-    e2fsck -f $ENV_OVERLAY
+    e2fsck -y -f $ENV_OVERLAY
     resize2fs $ENV_OVERLAY 32G
 fi
 
 singularity exec --overlay $ENV_OVERLAY $SIF_PATH /bin/bash << EOF
 set -e
-
-mkdir -p $SQFDIR
 
 # Set up miniconda
 if [[ ! -d "$CONDADIR" ]]; then
@@ -49,9 +53,10 @@ source $CONDADIR/etc/profile.d/conda.sh
 exit 0;
 EOF
 
-# Restart singularity so conda stuff works
+data_overlay_opts="$(find $SOUNDSPACES_SQF_DIR -type f -name "soundspaces-binaural_rirs-mp3d.part-*.sqf" | while read line; do part_num=$(echo $line | xargs | sed "s|.*part-\([0-9]*\)\.sqf|\1|g"); echo "--bind $line:/soundspaces-binaural_rirs-mp3d/$part_num:image-src=/soundspaces-binaural_rirs-mp3d.part-$part_num,ro"; done)"
 
-singularity exec --overlay $ENV_OVERLAY $SIF_PATH /bin/bash << EOF
+# Restart singularity so conda stuff works
+singularity exec --cleanenv --overlay $ENV_OVERLAY $data_overlay_opts $SIF_PATH /bin/bash << EOF
 set -e
 
 source $CONDADIR/etc/profile.d/conda.sh
@@ -64,6 +69,7 @@ fi
 
 # Set up environment script
 mkdir -p $BINDIR
+mkdir -p $LIBDIR
 cat > /ext3/env.sh <<EOL
 #!/bin/bash
 
@@ -81,7 +87,7 @@ mkdir -p /ext3/miniconda3/envs/soundspaces/etc/conda/deactivate.d
 
 cat > /ext3/miniconda3/envs/soundspaces/etc/conda/activate.d/env_vars.sh <<EOL
 export OLD_LD_LIBRARY_PATH=\\\${LD_LIBRARY_PATH}
-export LD_LIBRARY_PATH=/ext3/miniconda3/envs/soundspaces/lib:\\\${LD_LIBRARY_PATH}
+export LD_LIBRARY_PATH=/ext3/miniconda3/envs/soundspaces/lib:$LIBDIR:\\\${LD_LIBRARY_PATH}
 EOL
 
 cat > /ext3/miniconda3/envs/soundspaces/etc/conda/deactivate.d/env_vars.sh <<EOL
@@ -115,14 +121,32 @@ fi
 
 source /ext3/env.sh
 
-conda install -y numpy pyyaml scipy ipython mkl mkl-include libgcc libstdcxx-ng -n soundspaces
-conda install -y -c conda-forge squashfs-tools -n soundspaces
-conda update -y libstdcxx-ng -n soundspaces
+#conda install -y numpy pyyaml scipy ipython mkl mkl-include libgcc libstdcxx-ng -n soundspaces
+#conda update -y libstdcxx-ng -n soundspaces
+conda install -y numpy pyyaml scipy ipython mkl mkl-include -n soundspaces # habitat
+conda install -y -c conda-forge squashfs-tools -n soundspaces # squashfs
+conda install -y gawk bison -n soundspaces # glibc
+conda install -y -c conda-forge ifcfg -n soundspaces # soundspaces
 conda clean -ya
 
 # Set up code dir
 mkdir -p $CODEDIR
 cd $CODEDIR
+
+# Build glibc 2.29 (
+if [[ ! -d "$GLIBC_DIR" ]]; then
+    wget http://ftp.gnu.org/gnu/glibc/glibc-2.29.tar.gz
+    tar xzf glibc-2.29.tar.gz
+    pushd $GLIBC_DIR
+    mkdir build
+    pushd build
+    ../configure --prefix=/ext3/local
+    make -j $NUM_CORES
+    popd
+    popd
+
+    cp $GLIBC_DIR/build/math/libm.so.6 $LIBDIR
+fi
 
 # Install habitat-sim
 # ! we're installing v0.2.2 despite docs saying v0.2.1 since the latter doesn't
@@ -132,9 +156,8 @@ if [[ ! -d "$HABITAT_SIM_DIR" ]]; then
 fi
 pip install -r $HABITAT_SIM_DIR/requirements.txt
 pushd $HABITAT_SIM_DIR
-# Need the --parallel 2 so we don't segfault
-python setup.py build_ext --headless --audio --parallel 2
-python setup.py install --headless --audio
+# Need the --parallel so we don't segfault
+python setup.py build_ext --headless --audio --with-cuda --bullet --parallel $NUM_CORES install
 popd
 
 # Install habitat-lab
@@ -147,8 +170,8 @@ pip install -e $HABITAT_LAB_DIR
 if [[ ! -d "$SOUNDSPACES_DIR" ]]; then
     git clone git@github.com:marl/sound-spaces.git
     pushd $SOUNDSPACES_DIR
-    # Checkout Soundspaces 2.0 (latest as of 20220621)
-    git checkout 81ec95cb809b639f2126cb4435f229dbd2f23871
+    # Checkout Soundspaces 2.0 (latest as of 20220706)
+    git checkout 4e400abaf65c7759a287355386dcd97de2b17e2b
     popd
 
 fi
@@ -156,4 +179,14 @@ fi
 #       might be okay since SoundSpaces requires an older version?
 pip install -e $SOUNDSPACES_DIR
 
+# Install other necessary pip packages
+pip install torchvision
+
+# set up soundspaces data links, only necessary for MP3D RIRs
+mkdir -p $SOUNDSPACES_DIR/data/binaural_rirs/mp3d
+ln -s /soundspaces-binaural_rirs-mp3d/**/* $SOUNDSPACES_DIR/data/binaural_rirs/mp3d/
+
 EOF
+
+chmod 644 $ENV_OVERLAY
+setfacl -m u:sd5397:r $ENV_OVERLAY

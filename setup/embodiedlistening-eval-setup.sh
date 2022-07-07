@@ -2,8 +2,8 @@
 
 #SBATCH --job-name=hearsetup
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=2
-#SBATCH --mem=4GB
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=8GB
 #SBATCH --time=3:00:00
 #SBATCH --output="/scratch/%u/logs/setup-hear2021-overlay_%A-%a.out"
 
@@ -13,6 +13,8 @@
 
 set -e
 
+NUM_CORES=$SLURM_CPUS_PER_TASK
+NUM_WORKERS=$((NUM_CORES > 1 ? NUM_CORES - 1 : 1))
 
 PYENVS_DIR="/scratch/jtc440/overlay/pyenvs"
 BASE_OVERLAY="/scratch/work/public/overlay-fs-ext3/overlay-10GB-400K.ext3.gz"
@@ -96,11 +98,11 @@ if [[ ! -f "$BINDIR/ffmpeg" ]]; then
         git clone https://github.com/chirlu/soxr.git
     fi
     mkdir -p $CODEDIR/soxr/build/lib
-    cd $CODEDIR/soxr/build
+    pushd $CODEDIR/soxr/build
     cmake -Wno-dev -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=$CODEDIR/soxr/build/output ..
-    make && make test && make install
+    make -j $NUM_WORKERS && make test && make install
+    popd
     # Install ffmpeg
-    cd $CODEDIR
     if [[ ! -d "$CODEDIR/ffmpeg-4.4" ]]; then
         if [[ ! -f "$CODEDIR/ffmpeg-4.4.tar.gz" ]]; then
             wget https://www.ffmpeg.org/releases/ffmpeg-4.4.tar.gz
@@ -109,8 +111,8 @@ if [[ ! -f "$BINDIR/ffmpeg" ]]; then
     fi
     ffmpeg_build_dir="$CODEDIR/ffmpeg_build"
     mkdir -p \$ffmpeg_build_dir/lib
-    cd $CODEDIR/ffmpeg-4.4
 
+    pushd $CODEDIR/ffmpeg-4.4
     PATH="$BINDIR:\$PATH" PKG_CONFIG_PATH="$CODEDIR/lib/pkgconfig" ./configure \
       --prefix="\$ffmpeg_build_dir" \
       --pkg-config-flags="--static" \
@@ -120,12 +122,68 @@ if [[ ! -f "$BINDIR/ffmpeg" ]]; then
       --ld="g++" \
       --bindir="$BINDIR" \
       --enable-libsoxr
-    PATH="$BINDIR:\$PATH" make && make install
-    cd $CODEDIR
+    PATH="$BINDIR:\$PATH" make -j $NUM_WORKERS && make install
+    popd
 fi
 conda install -y -c conda-forge squashfs-tools
+conda install -y zip
+yes | pip install soundata
 yes | pip install intervaltree
 yes | pip install hearvalidator
+
+# Build IEM ambisonics plugins
+if [[ ! -d "$CODEDIR/IEMPluginSuite" ]]; then
+    git clone --recurse-submodules --shallow-submodules https://git.iem.at/audioplugins/IEMPluginSuite.git
+	pushd "$CODEDIR/IEMPluginSuite"
+	mkdir build
+	cd build
+	mkdir -p /ext3/vst3
+	cmake .. -DIEM_BUILD_VST3=ON -DIEM_BUILD_VST2=OFF -DIEM_BUILD_STANDALONE=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/ext3/vst3
+	cmake --build . -- -j $NUM_WORKERS
+	popd
+fi
+
+# Install pedalboard to use ambisonics VST3
+if [[ ! -d "$CODEDIR/pedalboard" ]]; then
+    git clone --recurse-submodules --shallow-submodules https://github.com/spotify/pedalboard.git
+    pushd "$CODEDIR/pedalboard"
+    pip install pybind11
+
+	# Remove channel limit
+    git am << 'EOF2'
+diff --git a/pedalboard/BufferUtils.h b/pedalboard/BufferUtils.h
+index d5f2e40..5958cae 100644
+--- a/pedalboard/BufferUtils.h
++++ b/pedalboard/BufferUtils.h
+@@ -81,8 +81,6 @@ copyPyArrayIntoJuceBuffer(const py::array_t<T, py::array::c_style> inputArray) {
+ 
+   if (numChannels == 0) {
+     throw std::runtime_error("No channels passed!");
+-  } else if (numChannels > 2) {
+-    throw std::runtime_error("More than two channels received!");
+   }
+ 
+   juce::AudioBuffer<T> ioBuffer(numChannels, numSamples);
+EOF2
+
+    pip install .
+
+    ###### Run if you want to run tests
+    #
+	# conda install -y tox
+	# # Convert JUCE test to Python 3
+	# 2to3 -w -n vendors/lame/test/lametest.py
+	# # Fix star imports
+	# sed -i -e 's/from string import \*/from string import split, atof, find, replace, rstrip/g' vendors/lame/test/lametest.py
+	# # Fix style things
+	# sed -i -e "s/  (diff/    (diff/g" vendors/lame/test/lametest.py
+	# sed -i -e "s/% \\\\$/%/g" vendors/lame/test/lametest.py
+    # tox
+    #
+    ######
+
+    popd
+fi
 
 # Clone relevant repos if not cloned
 if [[ ! -d "$CODEDIR/hear-eval-kit" ]]; then

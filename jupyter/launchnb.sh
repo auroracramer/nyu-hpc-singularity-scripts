@@ -57,7 +57,7 @@ if [ "$SLURM_JOBTMP" != "" ]; then
 fi
 
 # Import common stuff
-source /scratch/$USER/overlay/scripts/common/common.sh
+source /scratch/jtc440/overlay/scripts/common/common.sh
 
 
 # Launch jupyter notebook using the image launch script

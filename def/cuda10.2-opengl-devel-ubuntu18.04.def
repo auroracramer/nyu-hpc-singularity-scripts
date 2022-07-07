@@ -1,10 +1,10 @@
 
 Bootstrap: docker
-From: nvidia/cudagl:10.1-devel-ubuntu16.04
+From: nvidia/cudagl:10.2-devel-ubuntu18.04
 
 
 %labels
-     ABOUTME Ubuntu-16.04, CUDA 10.1, OpenGL (glvnd 1.2)
+     ABOUTME Ubuntu-18.04, CUDA 10.2, OpenGL (glvnd 1.2)
 
 
 %environment
@@ -15,9 +15,10 @@ From: nvidia/cudagl:10.1-devel-ubuntu16.04
     exec /bin/bash "$@"	
 
 %post
+    apt-get update
 
     # Setup basic packages
-    apt-get update && apt-get install -y --no-install-recommends \
+    apt-get install -y --no-install-recommends \
         build-essential \
         apt-utils \
         git \
@@ -33,12 +34,19 @@ From: nvidia/cudagl:10.1-devel-ubuntu16.04
         libomp-dev \
         libegl1-mesa-dev \
         libsndfile1 \
+        libgl1-mesa-glx \
+        mesa-utils \
+        ninja-build \
+        xorg-dev \
+        freeglut3-dev \
         pkg-config \
-        libc6 \
         make \
+        libc6 \
         wget \
         zip \
+        lcov\
         net-tools \
+        libhdf5-dev \
         unzip &&\
         rm -rf /var/lib/apt/lists/*
     apt-get clean
@@ -49,3 +57,5 @@ From: nvidia/cudagl:10.1-devel-ubuntu16.04
 	sh /cmake-3.14.0-Linux-x86_64.sh --prefix=/opt/cmake --skip-license
 	ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
 	cmake --version
+    rm /cmake-3.14.0-Linux-x86_64.sh
+

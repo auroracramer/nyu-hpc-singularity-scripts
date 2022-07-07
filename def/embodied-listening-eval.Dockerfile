@@ -20,19 +20,20 @@ RUN rm -rf /var/lib/apt/lists/* \
     apt-get update
     #   apt-get update && \
 
-RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
-    PIP_INSTALL="python -m pip --no-cache-dir install --upgrade" && \
-    GIT_CLONE="git clone --depth 10" && \
-
 # ==================================================================
 # tools
 # ------------------------------------------------------------------
-
+RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
+    PIP_INSTALL="python -m pip --no-cache-dir install --upgrade" && \
+    GIT_CLONE="git clone --depth 10" && \
+    apt-get update && \
     DEBIAN_FRONTEND=noninteractive TZ="America/New_York" $APT_INSTALL \
         build-essential \
         apt-utils \
         ca-certificates \
         wget \
+        clang \
+        ccache \
         git \
         vim \
         libssl-dev \
@@ -61,9 +62,16 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
         libxml-parser-perl \
         libxml2 \
         libxml2-dev \
+        libx11-dev \
+        libgl1-mesa-dev \
+        xorg-dev \
         libjpeg62 \
         make \
-        unrar
+        unrar \
+        libqt4-dev \
+        libjack-dev \
+        libsndfile1-dev \
+        libasound2-dev
 
 RUN rm -rf /etc/localtime && cp -rp /usr/share/zoneinfo/EST /etc/localtime
 
@@ -77,6 +85,17 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
     rm /usr/share/keyrings/kitware-archive-keyring.gpg && \
     $APT_INSTALL kitware-archive-keyring && \
     $APT_INSTALL cmake
+
+# set up ccache - https://askubuntu.com/a/470636
+RUN /usr/sbin/update-ccache-symlinks && \
+    echo 'export PATH="/usr/lib/ccache:$PATH"' | tee -a /etc/profile.d/ccache.sh
+
+# fftw3
+RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
+    GIT_CLONE="git clone --depth 10" && \
+    wget -qO- http://www.fftw.org/fftw-3.3.10.tar.gz | tar xz -C ~/ && \
+    cd ~/fftw-3.3.10 && \
+    ./configure --enable-float CFLAGS="-fPIC" && make && make install
 
 # ==================================================================
 # python
