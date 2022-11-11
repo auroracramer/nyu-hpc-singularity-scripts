@@ -76,3 +76,27 @@ get_sqf_overlay_args () {
     echo $(find $all_sqf_dir/$subset -type f -name "*.sqf" | while read line; do echo -n "--overlay $line:ro "; done)
 
 }
+
+get_sqf_bind_args () {
+    subset=$1
+    bind_dir=$2
+
+    local all_sqf_dir=$sqf_dir
+    if [[ ! -z $3 ]]; then
+        all_sqf_dir=$3
+    fi
+
+    echo $(find $all_sqf_dir/$subset -type f -name "*.sqf" | while read line; do echo -n "--bind $line:$bind_dir/$(basename $line .sqf):image-src=/$(basename $line .sqf),ro "; done)
+}
+
+get_dir_bind_args () {
+    root_dir=$1
+    bind_dir=$2
+
+    local all_sqf_dir=$sqf_dir
+    if [[ ! -z $3 ]]; then
+        all_sqf_dir=$3
+    fi
+
+    echo $(find $root_dir -mindepth 1 -maxdepth 1 -type d | while read line; do echo -n "--bind $line:$bind_dir/$(basename $line) "; done)
+}

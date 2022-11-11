@@ -60,3 +60,4 @@ singularity exec $nv \
             $data_overlay_opts \
             --overlay $pyenvs_dir/soundspacesv2-32GB-400K.ext3$ext3_suffix \
             $sif bash -c "$(get_launch_init_cmds); $args"
+
